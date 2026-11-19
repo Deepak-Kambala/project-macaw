@@ -1,61 +1,108 @@
-# Project Macaw — Samsung TV Firmware Reverse Engineering & Homebrew Research
+# Project Macaw — Samsung TV Firmware Reverse Engineering & Homebrew Feasibility Research
 
-Reverse engineering, architectural reconstruction, and host-side execution research targeting the **Samsung UA23H4003AR** television (Chassis `U8BA`, Firmware: `T-MXL0MASC-1040.0`).
+An exhaustive reverse engineering, architectural reconstruction, and host-side emulation investigation targeting the **Samsung UA23H4003AR** television (Chassis `U8BA`, Mainboard `BN41-02104A/B`, Platform: `T-MXL0MASC-1040.0`).
 
 ---
 
-## ⚠️ FINAL STRICT DECISION & SAFETY VERDICT
+## 🎯 The Genesis: Why This Project Started
 
-> ### **VERDICT: BETTER TO LEAVE UNTOUCHED — DO NOT FLASH OR UPDATE MODIFIED FIRMWARE**
-> 
-> **Decision:** **DO NOT ATTEMPT TO FLASH MODIFIED FIRMWARE VIA USB OR WRITE TO THE PHYSICAL TELEVISION STORAGE.**  
-> Under current hardware conditions, attempting a modified USB firmware update or direct SPI write carries a **near 100% probability of permanently bricking the television (hard brick)**.  
-> All custom code, reverse engineering, and game experimentation (including the Snake prototype) must remain **strictly confined to host-side simulation and the Aeon R2 emulator**.
+### The Vision
+Across the embedded device and retro-computing communities, television homebrew projects (such as *SamyGO* on Samsung Orsay/Tizen TVs, *RootMyTV* on LG webOS, and various MediaTek/Realtek Android modifications) demonstrated that consumer televisions could frequently be converted into open computing platforms. 
 
-### Why It Is Not Safe to Update (5 Critical Blockers):
+Project Macaw began with a simple, ambitious research question:
+> **Can an old, non-smart budget television (Samsung UA23H4003AR) run custom native software—such as a simple, remote-controlled Snake game—using exclusively its existing USB port, without opening the chassis, soldering headers, or using external hardware programming tools?**
 
-1. **Absence of Emergency Recovery Fallback:**  
-   The TV's bootloader (`0x000100` in SPI flash) contains no secondary recovery ROM, no dual-boot partition, and no documented emergency USB recovery key combination. If modified code crashes before the USB subsystem is brought up, the television is permanently unbootable.
+### The Initial Hypotheses
+When the project commenced in Milestone 1, three potential execution avenues were hypothesized:
+1. **The Media Player Runtime Hypothesis:** Did the TV's "ConnectShare" media player feature an undocumented scripting runtime, an HTML/browser widget engine, or an exploitable parser that could bootstrap arbitrary execution from a USB flash drive?
+2. **The USB Software Update Path:** Could the official USB firmware update package (`T-MXL0MASC.bin`) be unpacked, modified to include custom application logic, repackaged, and flashed through the standard user-facing settings menu?
+3. **The Hidden Factory / Diagnostic Shell:** Did the firmware contain a dormant root shell, a diagnostic Telnet/UART daemon accessible via the external 3.5 mm service port, or an engineering test menu that supported executable sideloading?
+
+---
+
+## 🔬 The Technical Journey: What We Discovered
+
+Over seven iterative, evidence-backed research milestones, the project systematically peeled back every layer of the television's hardware, firmware, instruction set architecture, and software runtime:
+
+```mermaid
+flowchart TD
+    A["Raw Firmware Package\n(T-MXL0MASC.bin - 3.85 MB)"] -->|"Entropy & Slicing (Milestone 1-2)"| B["Compressed Deflate Stream @ 0x023880"]
+    B -->|"Decompress 1.61 MB Chunk"| C["Main Application Image (3.10 MB)\n(decompressed_main.bin)"]
+    C -->|"Static Disassembly & SLEIGH Analysis"| D["MStar Aeon R2 Core Identified\n(Mixed 16/24/32-Bit Variable Length ISA)"]
+    D -->|"Architectural Reconstruction (Milestone 7)"| E["Utopia OS Runtime Reconstructed\n(Superloop, RIU MMIO, GE Blitter, GWIN)"]
+    E -->|"Emulator Construction & Slicing"| F["Host-Side Aeon R2 Emulator\n(Carved 2 Real Firmware Routines)"]
+    F -->|"100% Bit-for-Bit Verification"| G["Validated Host-Side Execution\n(Zero Flashing Required)"]
+```
+
+### 1. It is NOT a Smart TV (Milestone 1)
+- The Samsung UA23H4003AR is a dedicated, resource-constrained display scaler running **MStar Utopia / Chameleon Bare-Metal RTOS** (`"not enable MSOS_TYPE_LINUX"`).
+- It contains **zero Linux kernel, zero userland shell (`/bin/sh`), zero dynamic linker (`ld.so`), and zero script interpreters** (no JavaScript, Lua, Python, or Java/MHP).
+- The USB port is hardwired to a hardware media browser (`MApp_FileBrowser`) that strictly parses baseline JPEG images and MP3 audio via a dedicated audio DSP. There is no USB application sideloading mechanism.
+
+### 2. The Processor Architecture: MStar Aeon R2 (Milestones 2–5)
+- The SoC is the **MStar Macaw12** (MSD6306 / TSUMV59 family).
+- The CPU core is the **MStar Aeon R2**, a proprietary 32-bit RISC core derived from OpenRISC 1000 (OR1200) but heavily modified with a **variable-length instruction set (16-bit, 24-bit, and 32-bit instructions)**.
+- Validated instruction decoding against `shinyquagsire23/ghidra-aeon` (`aeon_ORBIS32.sinc`) and discovered that branch displacements in `bg.bnei`/`bg.beqi` represent **direct byte offsets** (not halfword or word offsets) due to odd 3-byte instruction widths.
+
+### 3. The Firmware Execution Pipeline (Milestones 4–7)
+- **Boot Sequence:** Power-on reset at `0x000100` (SPI flash) $\rightarrow$ cache & memory controller init $\rightarrow$ SRAM BSS clear & stack setup (`r1 = 0xB0000FE8`) $\rightarrow$ bootloader `main()` at `0x002106` $\rightarrow$ decompress 1,610,021 bytes to DRAM `0x80000000` $\rightarrow$ jump to Utopia application entry at `0x80000200`.
+- **Operating Model:** Non-preemptive cooperative superloop (`tv-ap/dvb/ui2_M10/MApp_ZUI_Main.c`) servicing hardware watchdog timer `0xA0006010` and software timer callbacks (`timer_cb/timer_cb.c`).
+- **Graphics Pipeline:** 2D hardware blitter (`MDrv_GE_*`) drawing into off-screen back buffer `dcBuff`, synchronized via V-Sync (`MDrv_GOP_GWIN_WaitVsync`) to display front buffer `dcMain`, scaled from 1280x720 to the native 1366x768 panel.
+- **Input Pipeline:** 38 kHz NEC-format physical IR carrier demodulation through RIU MMIO registers (`IR_RATE=0x%x`) mapped into logical keys (`KEY_UP`..`KEY_ENTER`) and dispatched to active dialogs (`_eActiveOSD`).
+
+### 4. Real Code Execution on Host Emulator (Milestones 6–7)
+- Rather than modifying physical flash, we constructed a Python Aeon R2 CPU emulator (`poc/aeon-r2-emulator/`).
+- We carved **two real machine code routines directly from the TV's firmware ROM** (`0x005177`, 13 bytes; `0x0016E1`, 38 bytes) and executed both under emulator harnesses across diverse test inputs, achieving **100% bit-for-bit agreement against reference models**.
+- We built a fully decoupled host-side Snake game engine (`poc/snake-host/`) rendering into a 1280x720 framebuffer using MStar-compatible `MockGE` blitter primitives.
+
+---
+
+## 🛑 The Hard Truth: Why We Are Stopping Here
+
+The core objective of Project Macaw has been completed. We set out to determine whether custom software can run on this television via USB only. **The rigorous, evidence-backed scientific answer is NO, not safely through USB alone.**
+
+Attempting to push past this point and flash modified code to the physical television would cross the line from **methodical reverse engineering into reckless hardware destruction**.
+
+```text
++-------------------------------------------------------------------------------+
+|                        THE FINAL STRICT DECISION                              |
+|                                                                               |
+|             >>> VERDICT: BETTER TO LEAVE UNTOUCHED <<<                        |
+|                                                                               |
+|   DO NOT ATTEMPT TO FLASH MODIFIED FIRMWARE OR WRITE TO PHYSICAL TV STORAGE.  |
+|   Under current conditions, physical flashing has an estimated ~100% chance   |
+|   of permanently bricking the television into unrecoverable e-waste.          |
++-------------------------------------------------------------------------------+
+```
+
+### The 5 Insurmountable Physical & Architectural Blockers:
+
+1. **Zero Dual-Boot / No Emergency USB Recovery Fallback:**  
+   The TV's bootloader (`0x000100` in SPI flash) contains no secondary fallback recovery partition, no recovery boot ROM, and no emergency USB key-combination reload routine. If modified firmware crashes before the USB stack initializes, the TV is permanently dead.
 2. **Strict Hardware Watchdog Interlocking (`0xA0006010`):**  
-   The MStar Macaw12 SoC implements a hardware watchdog counter at MMIO `0xA0006010`. The main application superloop (`MApp_ZUI_Main`) must continuously strobe this counter. Any custom routine, unhandled exception, or blocking game loop will trigger an automatic hardware reboot within ~1.5 seconds, entering an infinite boot-loop.
+   The MStar SoC incorporates an active hardware watchdog at MMIO `0xA0006010`. The main application superloop must continuously stroke this register. Any custom game callback or blocking subroutine that runs longer than ~1.5 seconds triggers an immediate hardware reset, locking the TV in an infinite bootloop.
 3. **No Verified Hardware Debug Console (UART):**  
-   The external 3.5 mm jack is verified to be analog audio output, **not** service UART. The internal UART test pads on the BN41-02104A/B mainboard have not been physically probed or verified with a logic analyzer. Without an active serial console, there is zero visibility into bootloader panics, exception dumps, or register state.
-4. **No Physical SPI Flash Backup:**  
-   The physical Winbond W25Q32 (4 MB SPI NOR) chip has not been dumped via an external hardware programmer (e.g., CH341A with SOIC8 test clip). Without a verified external dump, there is no way to restore corrupted flash memory.
-5. **Multi-Stage Boot & Partition Checksums:**  
-   The bootloader verifies flash chunk headers and CRC32 tables before executing payload decompression from `0x023880` to DRAM `0x80000000`. Altering binary payloads in flash alters checksums and breaks boot decompression.
+   The external 3.5 mm jack is verified to be analog audio output, **not** service UART. The internal UART test pads on the BN41-02104A/B mainboard have never been physically verified with a logic analyzer or oscilloscope. Without an active serial console, developers cannot see panic logs, exception backtraces, or bootloader prompts.
+4. **No Physical SPI Flash ROM Backup:**  
+   The physical Winbond W25Q32 (4 MB SPI NOR) chip has not been dumped using an external hardware programmer (such as a CH341A with a SOIC8 clip). If SPI flash memory is corrupted or miswritten, there is no way to restore factory firmware without desoldering the chip.
+5. **Fragile Boot Integrity & Checksum Chains:**  
+   The bootloader validates partition chunk headers and CRC32 tables before decompressing `decompressed_main.bin`. Modifying code inside flash breaks compression boundaries and CRC integrity, causing the bootloader to reject the payload and halt before display initialization.
 
-### What Would Be Required Before Physical Execution is Ever Considered?
-Physical code execution should **only** be reconsidered if all the following conditions are met:
-- [ ] A full physical SPI flash backup is dumped and verified using an external programmer (e.g. CH341A / Pomona 5250 clip).
-- [ ] Internal 3.3V UART test pads on the BN41-02104A/B PCB are identified, soldered, and confirmed to capture live serial bootlogs.
-- [ ] The bootloader command prompt (MStar `<< MStar >>#` console) is accessible over UART to halt booting and load code into DRAM via serial/XMODEM without flashing SPI NOR flash.
+### When Would Physical Execution Ever Be Justified?
+Physical execution should **only** be revisited if an engineer is prepared to transition from a software project into a destructive hardware bench project with the following prerequisites:
+- [ ] A verified, byte-for-byte physical SPI NOR flash backup dumped using an external hardware programmer (CH341A / Pomona clip).
+- [ ] Internal 3.3V UART test pads on the BN41-02104A/B PCB soldered, level-shifted, and actively logging serial output at 115200 baud.
+- [ ] Access to the interactive bootloader command line (`<< MStar >>#`) over UART to test loading code directly into DRAM (`0x80000000`) without writing to flash.
 
-Until those hardware milestones are achieved, **the device must be left alone in its factory state**.
-
----
-
-## Hardware & Environment Specifications
-
-- **Target Device:** Samsung UA23H4003AR (Series 4 LED Non-Smart TV)
-- **Chassis:** U8BA
-- **Mainboard:** High_X12_DVB_NonSmart (`BN41-02104A/B`)
-- **System-on-Chip (SoC):** MStar Macaw12 / MSD6306 family
-- **CPU Architecture:** 
-  - Primary Core: **MStar Aeon R2** (32-bit OpenRISC-derived core, mixed 16/24/32-bit variable-length ISA)
-  - Secondary Core: **MStar PM Coprocessor** (Standby & IR management)
-- **Display Panel:** 23.6-inch LCD panel, native resolution **1366 × 768** (WXGA)
-- **OS Platform:** MStar Utopia Bare-Metal RTOS (`"not enable MSOS_TYPE_LINUX"`)
-- **Flash ROM:** Winbond W25Q32 (4 MB SPI NOR Flash)
-- **Firmware Image:** `T-MXL0MASC.bin` (v1040.0, SHA-256: `f02cbf9ecf87087ea85826584cc9ad949b13d1ff404b1fe8888323b0f4ed52d5`)
+Until those hardware interventions are undertaken, **stopping here preserves a working television while documenting a complete, reproducible software victory**.
 
 ---
 
-## Project Macaw Milestones Summary
+## 📊 Summary of Milestones
 
 | Milestone | Scope & Core Objective | Key Deliverables & Achievements | Status |
 | :---: | :--- | :--- | :---: |
-| **Milestone 1** | Binary structure & format static analysis | Confirmed MStar Macaw12 / Aeon RISC32; established that no USB userland shell exists. | **COMPLETED** |
+| **Milestone 1** | Binary structure & static analysis | Confirmed MStar Macaw12 / Aeon RISC32; proved that no USB userland shell exists. | **COMPLETED** |
 | **Milestone 2** | Native code feasibility & architecture | Identified 32-bit virtual memory layout, Utopia C runtime, and Winbond SPI flash layout. | **COMPLETED** |
 | **Milestone 3** | Hardware verification & safety boundaries | Proved 3.5mm jack is Audio Out (not UART); established strict read-only hardware policy. | **COMPLETED** |
 | **Milestone 4** | Firmware reverse engineering & UI mapping | Identified `MDrv_GE_*` graphics blitter APIs, `MApp_ZUI_*` window procedures, and IR keycodes. | **COMPLETED** |
@@ -65,52 +112,65 @@ Until those hardware milestones are achieved, **the device must be left alone in
 
 ---
 
-## Host-Side Proof-of-Concept Implementations
+## 💻 Running the Host-Side Proof of Concepts
 
-### 1. Real Firmware Routine Emulation (`poc/firmware-routine-emulation/`)
-Carved genuine machine code directly from the TV firmware binary (`Samsung-TV-Homebrew/analysis/decompressed_main.bin`) and executed on the host-side Aeon R2 emulator:
-- **Routine 1 (`0x005177`, 13 bytes, 5 instructions):** Halfword Array Element Lookup / Extractor (`bn.slli`, `bt.add`, `bn.lh`, `bn.extbz`, `bt.jr`).
-- **Routine 2 (`0x0016E1`, 38 bytes, 14 instructions):** 15-Byte Memory Buffer Copy Loop with branch looping (`bg.bnei`) and stack frame deallocation.
-- Verified across multiple input test vectors with **100% bit-for-bit agreement** against independent reference models.
+The repository contains a complete, self-contained suite of Python tools, CPU emulators, and test runners that require no external dependencies beyond standard Python 3.
+
+### 1. Execute Real Carved Television Firmware Code
+Carves two real subroutines directly from the television ROM (`decompressed_main.bin`) and executes them inside the host-side Aeon R2 emulator:
 ```bash
+# Slices routines and generates metadata
+python3 poc/firmware-routine-emulation/extract_routine.py
+
+# Runs both routines across multi-input test vectors
 python3 poc/firmware-routine-emulation/run_routine.py
+
+# Runs unit test suite (including negative counter-example tests)
 python3 -m unittest discover -s poc/firmware-routine-emulation/tests
 ```
 
-### 2. Modular Aeon R2 Emulator (`poc/aeon-r2-emulator/`)
-Host-side Python CPU emulator implementing Aeon R2 register bank, linear memory controller, instruction decoder, and execution tracer.
+### 2. Run the Modular Aeon R2 CPU Emulator Tests
+Validates 16-bit, 24-bit, and 32-bit Aeon R2 instruction decoding, register bank operations, linear memory access, and CPU control flow:
 ```bash
 python3 -m unittest discover -s poc/aeon-r2-emulator/tests
 ```
 
-### 3. Snake Engine & MockGE Graphics Prototype (`poc/snake-host/`)
-Decoupled game engine operating on numeric coordinate models, rendering to a 1280x720 framebuffer via MStar-compatible `MockGE` blitter primitives:
+### 3. Run the Decoupled Snake Engine & MockGE Simulation
+Runs the grid-based Snake game engine rendering into a 1280x720 framebuffer via MStar-compatible `MockGE` blitter primitives:
 ```bash
+# Run graphical simulation demo
 python3 poc/snake-host/integration_demo.py
+
+# Run Snake engine unit tests
 python3 -m unittest discover -s poc/snake-host/tests
 ```
 
 ---
 
-## Key Milestone Reports
+## 📑 Complete Research Reports Directory
 
-- **Milestone 7 Final Report:** [reports/milestone7_final_report.md](reports/milestone7_final_report.md)
-- **Real Firmware Code Execution:** [reports/milestone7_real_code_execution.md](reports/milestone7_real_code_execution.md)
-- **Snake Integration Readiness:** [reports/milestone7_snake_integration_readiness.md](reports/milestone7_snake_integration_readiness.md)
-- **Firmware Entry Point Analysis:** [research/milestone7/firmware_entry_analysis.md](research/milestone7/firmware_entry_analysis.md)
-- **Memory Map Reconstruction:** [research/milestone7/memory_map.md](research/milestone7/memory_map.md)
-- **Timer & Scheduler Analysis:** [reports/milestone7_timer_scheduler_analysis.md](reports/milestone7_timer_scheduler_analysis.md)
-- **Graphics Subsystem Runtime Analysis:** [research/milestone7/graphics_runtime_analysis.md](research/milestone7/graphics_runtime_analysis.md)
-- **Remote Input Dispatch Analysis:** [reports/milestone7_input_dispatch_analysis.md](reports/milestone7_input_dispatch_analysis.md)
-- **Initial Firmware Static Analysis (Milestone 1):** [reports/firmware-analysis.md](reports/firmware-analysis.md)
+Detailed technical reports and architectural analyses produced across all milestones:
+
+| Document | Path | Key Focus |
+| :--- | :--- | :--- |
+| **Milestone 7 Final Report** | [reports/milestone7_final_report.md](reports/milestone7_final_report.md) | Comprehensive 16-section summary of runtime reconstruction & emulation. |
+| **Real Code Execution Report** | [reports/milestone7_real_code_execution.md](reports/milestone7_real_code_execution.md) | Disassembly, execution traces, and multi-input test results for real TV code. |
+| **Emulator Extensions Report** | [reports/milestone7_emulator_extensions.md](reports/milestone7_emulator_extensions.md) | Formal ISA documentation for added Aeon R2 instructions and branch displacement rules. |
+| **Snake Integration Readiness** | [reports/milestone7_snake_integration_readiness.md](reports/milestone7_snake_integration_readiness.md) | Comparative matrix mapping host Snake components to real TV firmware APIs. |
+| **Firmware Entry Analysis** | [research/milestone7/firmware_entry_analysis.md](research/milestone7/firmware_entry_analysis.md) | Stage-by-stage disassembly of reset vectors and Utopia application entry. |
+| **Memory Map Reconstruction** | [research/milestone7/memory_map.md](research/milestone7/memory_map.md) | Itemized matrix of virtual memory (KSEG0, KSEG1), SRAM, and MMIO spaces. |
+| **Timer & Scheduler Analysis** | [reports/milestone7_timer_scheduler_analysis.md](reports/milestone7_timer_scheduler_analysis.md) | Analysis of `timer_cb.c`, cooperative superloop, and watchdog timer `0xA0006010`. |
+| **Graphics Runtime Analysis** | [research/milestone7/graphics_runtime_analysis.md](research/milestone7/graphics_runtime_analysis.md) | MStar GE blitter, GOP compositor, double-buffering (`dcMain`/`dcBuff`), and 720p scaling. |
+| **Input Dispatch Analysis** | [reports/milestone7_input_dispatch_analysis.md](reports/milestone7_input_dispatch_analysis.md) | IR carrier demodulation (`IR_RATE`), scan-code translation, and ZUI window routing. |
+| **Initial Firmware Analysis** | [reports/firmware-analysis.md](reports/firmware-analysis.md) | Milestone 1 static analysis, entropy mapping, and partition carving. |
 
 ---
 
-## Firmware Artifact Integrity
+## 🔒 Firmware Artifact Integrity
 
-Both original firmware binaries remain strictly preserved and unmodified:
+In accordance with strict read-only safety guidelines, all original firmware binaries have remained 100% unaltered throughout the entire investigation:
 
-| File Artifact | Baseline SHA-256 Hash |
-| :--- | :--- |
-| `firmware/T-MXL0MASC.bin` | `f02cbf9ecf87087ea85826584cc9ad949b13d1ff404b1fe8888323b0f4ed52d5` |
-| `analysis/decompressed_main.bin` | `a7acb484039d43e045e9839a61c693ed6e621484fbf23e384ac33cc0b7ec5884` |
+| File Artifact | Baseline SHA-256 Hash | Status |
+| :--- | :--- | :---: |
+| `firmware/T-MXL0MASC.bin` | `f02cbf9ecf87087ea85826584cc9ad949b13d1ff404b1fe8888323b0f4ed52d5` | **MATCHED (UNTOUCHED)** |
+| `analysis/decompressed_main.bin` | `a7acb484039d43e045e9839a61c693ed6e621484fbf23e384ac33cc0b7ec5884` | **MATCHED (UNTOUCHED)** |
