@@ -48,6 +48,27 @@ def execute_instruction(inst, cpu):
         addr = (cpu.regs.read(f["rA"]) + f["offset"]) & 0xFFFFFFFF
         val = cpu.mem.read_u32(addr)
         cpu.regs.write(f["rD"], val)
+    elif mnem == "bn.lh":
+        addr = (cpu.regs.read(f["rA"]) + f["offset"]) & 0xFFFFFFFF
+        val = cpu.mem.read_u16(addr)
+        cpu.regs.write(f["rD"], val & 0xFFFF)
+    elif mnem == "bn.lbz":
+        addr = (cpu.regs.read(f["rA"]) + f["offset"]) & 0xFFFFFFFF
+        val = cpu.mem.read_u8(addr)
+        cpu.regs.write(f["rD"], val & 0xFF)
+    elif mnem == "bn.sbz":
+        addr = (cpu.regs.read(f["rA"]) + f["offset"]) & 0xFFFFFFFF
+        val = cpu.regs.read(f["rD"]) & 0xFF
+        cpu.mem.write_u8(addr, val)
+    elif mnem == "bn.slli":
+        val = (cpu.regs.read(f["rA"]) << f["imm"]) & 0xFFFFFFFF
+        cpu.regs.write(f["rD"], val)
+    elif mnem == "bn.exthz":
+        val = cpu.regs.read(f["rA"]) & 0xFFFF
+        cpu.regs.write(f["rD"], val)
+    elif mnem == "bn.extbz":
+        val = cpu.regs.read(f["rA"]) & 0xFF
+        cpu.regs.write(f["rD"], val)
     elif mnem == "bn.addi":
         val = (cpu.regs.read(f["rA"]) + f["simm"]) & 0xFFFFFFFF
         cpu.regs.write(f["rD"], val)

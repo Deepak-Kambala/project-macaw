@@ -84,6 +84,12 @@ class Decoder:
             if opcode == 0x00:
                 if uimm0_2 == 0 and rD == 0 and rA == 0 and (val & 0xFF) == 0:
                     return DecodedInstruction(3, "bn.nop", {}, "bn.nop", raw)
+            elif opcode == 0x02:
+                # bn.lh: i24_rD, offs(i24_rA) where offs = simm0_8 & ~1
+                simm8 = val & 0xFF
+                if simm8 & 0x80: simm8 -= 0x100
+                eff_offset = simm8 & ~1
+                return DecodedInstruction(3, "bn.lh", {"rD": rD, "rA": rA, "offset": eff_offset}, f"bn.lh r{rD}, {eff_offset}(r{rA})", raw)
             elif opcode == 0x03:
                 if uimm0_2 == 0:
                     # bn.sw: simm0_8(rA)
@@ -96,6 +102,16 @@ class Decoder:
                     if simm2_6 & 0x20: simm2_6 -= 0x40
                     eff_offset = simm2_6 << 2
                     return DecodedInstruction(3, "bn.lwz", {"rD": rD, "rA": rA, "offset": eff_offset}, f"bn.lwz r{rD}, {eff_offset}(r{rA})", raw)
+            elif opcode == 0x04:
+                # bn.lbz: i24_rD, simm0_8(i24_rA)
+                simm8 = val & 0xFF
+                if simm8 & 0x80: simm8 -= 0x100
+                return DecodedInstruction(3, "bn.lbz", {"rD": rD, "rA": rA, "offset": simm8}, f"bn.lbz r{rD}, {simm8}(r{rA})", raw)
+            elif opcode == 0x06:
+                # bn.sbz: simm0_8(i24_rA), i24_rD
+                simm8 = val & 0xFF
+                if simm8 & 0x80: simm8 -= 0x100
+                return DecodedInstruction(3, "bn.sbz", {"rD": rD, "rA": rA, "offset": simm8}, f"bn.sbz {simm8}(r{rA}), r{rD}", raw)
             elif opcode == 0x07:
                 simm8 = val & 0xFF
                 if simm8 & 0x80: simm8 -= 0x100
@@ -129,12 +145,25 @@ class Decoder:
                 logic_names = ["op0", "op1", "op2", "op3", "and", "or", "xor", "nand"]
                 name = f"bn.{logic_names[uimm0_3]}"
                 return DecodedInstruction(3, name, {"rD": rD, "rA": rA, "rB": rB}, f"{name} r{rD}, r{rA}, r{rB}", raw)
+            elif opcode == 0x13:
+                uimm0_3 = val & 0x07
+                uimm3_5 = (val >> 3) & 0x1F
+                if uimm0_3 == 0:
+                    return DecodedInstruction(3, "bn.slli", {"rD": rD, "rA": rA, "imm": uimm3_5}, f"bn.slli r{rD}, r{rA}, {uimm3_5}", raw)
             elif opcode == 0x14:
                 ik = val & 0xFF
                 return DecodedInstruction(3, "bn.ori", {"rD": rD, "rA": rA, "imm": ik}, f"bn.ori r{rD}, r{rA}, 0x{ik:x}", raw)
             elif opcode == 0x15:
                 ik = val & 0xFF
                 return DecodedInstruction(3, "bn.andi", {"rD": rD, "rA": rA, "imm": ik}, f"bn.andi r{rD}, r{rA}, 0x{ik:x}", raw)
+            elif opcode == 0x17:
+                bit0 = val & 1
+                uimm1_4 = (val >> 1) & 0x0F
+                if bit0 == 0:
+                    if uimm1_4 == 0:
+                        return DecodedInstruction(3, "bn.extbz", {"rD": rD, "rA": rA}, f"bn.extbz r{rD}, r{rA}", raw)
+                    elif uimm1_4 == 2:
+                        return DecodedInstruction(3, "bn.exthz", {"rD": rD, "rA": rA}, f"bn.exthz r{rD}, r{rA}", raw)
 
             raise UnsupportedInstructionError(f"Unsupported 24-bit opcode 0x{opcode:02x} at PC=0x{pc:08x} (bytes: {raw.hex()})")
 
@@ -172,7 +201,7 @@ class Decoder:
                 if simm16_5 & 0x10: simm16_5 -= 0x20
                 rel13 = (val >> 3) & 0x1FFF
                 if rel13 & 0x1000: rel13 -= 0x2000
-                rel_bytes = rel13 * 2
+                rel_bytes = rel13
                 if uimm0_3 == 2:
                     return DecodedInstruction(4, "bg.beqi", {"rD": rD, "imm": simm16_5, "rel": rel_bytes}, f"bg.beqi r{rD}, {simm16_5}, {rel_bytes:+d}", raw)
                 elif uimm0_3 == 6:
