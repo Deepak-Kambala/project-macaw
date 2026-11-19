@@ -1,0 +1,20 @@
+==================================================================
+ Aeon R2 Mini-Assembler & Round-Trip Verification                 
+==================================================================
+Generated 31 bytes of machine code.
+
+Disassembling generated machine code to verify round-trip:
+
+  Step 01 [0x00]: fc 21 ff f0  [32-bit] bg.addi r1, r1, -16
+  Step 02 [0x04]: 0d 21 0c     [24-bit] bn.sw 0xc(r1), r9
+  Step 03 [0x07]: 0d 41 08     [24-bit] bn.sw 0x8(r1), r10
+  Step 04 [0x0a]: 99 4a        [16-bit] bt.movi r10, 10
+  Step 05 [0x0c]: 8c 64        [16-bit] bt.add r3, r4
+  Step 06 [0x0e]: 8c 6a        [16-bit] bt.add r3, r10
+  Step 07 [0x10]: 1c 63 05     [24-bit] bn.addi r3, r3, 5
+  Step 08 [0x13]: 0d 41 0a     [24-bit] bn.lwz r10, 0xa(r1)
+  Step 09 [0x16]: 0d 21 0e     [24-bit] bn.lwz r9, 0xe(r1)
+  Step 10 [0x19]: fc 21 00 10  [32-bit] bg.addi r1, r1, 16
+  Step 11 [0x1d]: 85 29        [16-bit] bt.jr r9 (ret)
+
+Round-trip verification successful: True

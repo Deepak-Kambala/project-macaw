@@ -1,0 +1,37 @@
+==================================================================
+ Remote-Control Input & ZUI Window Procedure Execution Tracing    
+==================================================================
+
+--- 1. Confirmed Remote-Control Event Pipeline ---
+  Stage: Hardware IR Receiver           -> Infrared photodiode detects 38kHz modulated Samsung NEC-protocol pulses on front panel
+  Stage: MStar IR Driver (drvIR)        -> RIU MMIO registers capture bit timings; decodes 32-bit customer code & key code
+  Stage: Key Translation Layer          -> Maps raw IR scan code to logical TV keycode enum (e.g. KEY_UP, KEY_DOWN, KEY_ENTER)
+  Stage: ZUI Message Queue              -> Posts MSG_KEYDOWN or MSG_KEYUP with wParam=u8KeyCode into ZUI thread queue
+  Stage: ZUI Main Loop (MApp_ZUI_Main)  -> Fetches next event, resolves active window (_eActiveOSD), calls window procedure
+  Stage: Window Procedure (u8WinProcID) -> Dispatches message to target action handler (e.g., MApp_ZUI_ACTagingmenu.c)
+
+--- 2. ZUI Action Handler Targets in Firmware ---
+  Target: MApp_ZUI_ACTagingmenu      (Offset 0x16c870) | Burn-in / aging pattern menu; minimal background dependencies, ideal for game override
+  Target: MApp_ZUI_ACTshopmode       (Offset 0x16cb98) | Store demo mode; cycles presets, higher background state complexity
+  Target: MApp_ZUI_ACTfactorymenu    (Offset 0x16c844) | Factory service menu; critical calibration data risk, dangerous to hijack
+  Target: MApp_ZUI_ACTdmp            (Offset 0x16cfe9) | Digital Media Player (USB viewer); depends on USB subsystem and decoder states
+  Target: MApp_ZUI_ACTscreensaver    (Offset 0x16cbe0) | Screensaver handler; invoked after idle timeout, passive display
+
+--- 3. Evaluation of Hijacking Candidates ---
+
+    +-------------------+----------------+--------------------+---------------------+-----------------------------------------+
+    | Candidate Target  | Entry Trigger  | State Interference | Cleanup / Exit Risk | Verdict                                 |
+    +-------------------+----------------+--------------------+---------------------+-----------------------------------------+
+    | Aging Menu        | Service Menu / | LOW                | LOW                 | RECOMMENDED: Self-contained full-screen |
+    | (ACTagingmenu)    | Remote Combo   | No tuner/DMP lock  | Restores cleanly    | test surface with isolated event loop   |
+    +-------------------+----------------+--------------------+---------------------+-----------------------------------------+
+    | Shop Mode         | Settings Menu  | MEDIUM             | MEDIUM              | VIABLE: May reset audio/picture presets |
+    | (ACTshopmode)     |                | May clobber NVRAM  | on exit             | unexpectedly                            |
+    +-------------------+----------------+--------------------+---------------------+-----------------------------------------+
+    | DMP USB Viewer    | USB Insert /   | HIGH               | HIGH                | FRAGILE: Dependent on FAT32 mounting,   |
+    | (ACTdmp)          | Source Select  | Locks USB driver   | File system locks   | USB mass storage stack, and decoders    |
+    +-------------------+----------------+--------------------+---------------------+-----------------------------------------+
+    | Factory Menu      | Info+Menu+Mute | CRITICAL           | FATAL               | REJECTED: Risk of clobbering factory    |
+    | (ACTfactorymenu)  | +Power         | Reads/writes EEPROM| Bricking hazard     | calibrations and ADC offsets in EEPROM  |
+    +-------------------+----------------+--------------------+---------------------+-----------------------------------------+
+    

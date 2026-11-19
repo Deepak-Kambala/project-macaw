@@ -1,0 +1,113 @@
+==================================================================
+ Aeon R2 Instruction Set Verification Across Independent Regions 
+==================================================================
+
+=======================================================
+ Region: Region A: Bootloader Reset Vector (0x000100 in T-MXL0MASC.bin) (Start: 0x000100)
+=======================================================
+0x000100:  50 60 01      [24-bit]  bn.ori r3, r0, 0x1
+0x000103:  c0 60 01 1d   [32-bit]  bg.mtspr r0, r3, spr_0x8
+0x000107:  c0 f4 04 01   [32-bit]  bg.movhi r7, 0xa020
+0x00010b:  c8 c7 04 00   [32-bit]  bg.ori r6, r7, 0x400
+0x00010f:  c8 a0 f0 00   [32-bit]  bg.ori r5, r0, 0xf000
+0x000113:  ec a6 01 40   [32-bit]  bg.sw 320(r6), r5
+0x000117:  c8 a0 b0 00   [32-bit]  bg.ori r5, r0, 0xb000
+0x00011b:  ec a6 01 38   [32-bit]  bg.sw 312(r6), r5
+0x00011f:  c8 a0 90 00   [32-bit]  bg.ori r5, r0, 0x9000
+0x000123:  ec a6 01 54   [32-bit]  bg.sw 340(r6), r5
+0x000127:  50 a0 17      [24-bit]  bn.ori r5, r0, 0x17
+0x00012a:  ec a6 01 60   [32-bit]  bg.sw 352(r6), r5
+0x00012e:  c8 a7 24 00   [32-bit]  bg.ori r5, r7, 0x2400
+0x000132:  08 65 01      [24-bit]  bn.lh r3, 2(r5)
+0x000135:  c4 63 80 00   [32-bit]  bg.andi r3, r3, 0x8000
+0x000139:  5c 60 01      [24-bit]  bn.op_17
+0x00013c:  20 01 b9      [24-bit]  bn.bf +110
+0x00013f:  00 00 00      [24-bit]  bn.nop
+0x000142:  c8 a0 a1 00   [32-bit]  bg.ori r5, r0, 0xa100
+0x000146:  ec a6 01 58   [32-bit]  bg.sw 344(r6), r5
+--- Instruction Statistics: 16-bit: 0, 24-bit: 6, 32-bit: 14 ---
+
+=======================================================
+ Region: Region B: Exception Vector Frame Save (0x020280 in T-MXL0MASC.bin) (Start: 0x020280)
+=======================================================
+0x020280:  fc 21 fe e4   [32-bit]  bg.addi r1, r1, -284
+0x020284:  0c 61 0c      [24-bit]  bn.sw 0xc(r1), r3
+0x020287:  0c 81 10      [24-bit]  bn.sw 0x10(r1), r4
+0x02028a:  0c a1 14      [24-bit]  bn.sw 0x14(r1), r5
+0x02028d:  0c c1 18      [24-bit]  bn.sw 0x18(r1), r6
+0x020290:  0c e1 1c      [24-bit]  bn.sw 0x1c(r1), r7
+0x020293:  0d 01 20      [24-bit]  bn.sw 0x20(r1), r8
+0x020296:  0d 21 24      [24-bit]  bn.sw 0x24(r1), r9
+0x020299:  0d 61 2c      [24-bit]  bn.sw 0x2c(r1), r11
+0x02029c:  0d a1 34      [24-bit]  bn.sw 0x34(r1), r13
+0x02029f:  0d e1 3c      [24-bit]  bn.sw 0x3c(r1), r15
+0x0202a2:  0e 21 44      [24-bit]  bn.sw 0x44(r1), r17
+0x0202a5:  0e 61 4c      [24-bit]  bn.sw 0x4c(r1), r19
+0x0202a8:  0e a1 54      [24-bit]  bn.sw 0x54(r1), r21
+0x0202ab:  0e e1 5c      [24-bit]  bn.sw 0x5c(r1), r23
+0x0202ae:  0f 21 64      [24-bit]  bn.sw 0x64(r1), r25
+0x0202b1:  0f 61 6c      [24-bit]  bn.sw 0x6c(r1), r27
+0x0202b4:  0f a1 74      [24-bit]  bn.sw 0x74(r1), r29
+0x0202b7:  0f e1 7c      [24-bit]  bn.sw 0x7c(r1), r31
+0x0202ba:  0c 01 00      [24-bit]  bn.sw 0x0(r1), r0
+0x0202bd:  0c 41 08      [24-bit]  bn.sw 0x8(r1), r2
+0x0202c0:  0d 41 28      [24-bit]  bn.sw 0x28(r1), r10
+0x0202c3:  0d 81 30      [24-bit]  bn.sw 0x30(r1), r12
+0x0202c6:  0d c1 38      [24-bit]  bn.sw 0x38(r1), r14
+0x0202c9:  0e 01 40      [24-bit]  bn.sw 0x40(r1), r16
+--- Instruction Statistics: 16-bit: 0, 24-bit: 24, 32-bit: 1 ---
+
+=======================================================
+ Region: Region C: Main Application Entry Point (0x000000 in decompressed_main.bin) (Start: 0x000000)
+=======================================================
+0x000000:  0f 4d 00      [24-bit]  bn.sw 0x0(r13), r26
+0x000003:  40 63 53      [24-bit]  bn.muls r3, r3, r10
+0x000006:  c0 c0 0a 61   [32-bit]  bg.movhi r6, 0x53
+0x00000a:  fc c6 85 04   [32-bit]  bg.addi r6, r6, -31484
+0x00000e:  8c 66         [16-bit]  bt.add r3, r6
+0x000010:  c0 e0 0a 41   [32-bit]  bg.movhi r7, 0x52
+0x000014:  ec 87 7e 22   [32-bit]  bg.lwz r4, 32288(r7)
+0x000018:  0d 41 02      [24-bit]  bn.lwz r10, 0x2(r1)
+0x00001b:  0d 21 06      [24-bit]  bn.lwz r9, 0x6(r1)
+0x00001e:  9c 28         [16-bit]  bt.addi r1, 8
+0x000020:  e4 0c 2f f9   [32-bit]  bg.j +798712
+0x000024:  98 60         [16-bit]  bt.movi r3, 0
+0x000026:  e4 0f 4c b2   [32-bit]  bg.jal +1002674
+0x00002a:  51 40 6c      [24-bit]  bn.ori r10, r0, 0x6c
+0x00002d:  40 63 53      [24-bit]  bn.muls r3, r3, r10
+0x000030:  c0 e0 0a 61   [32-bit]  bg.movhi r7, 0x53
+0x000034:  fc e7 84 5c   [32-bit]  bg.addi r7, r7, -31652
+0x000038:  8c 67         [16-bit]  bt.add r3, r7
+0x00003a:  98 e4         [16-bit]  bt.movi r7, 4
+0x00003c:  ec e3 00 a8   [32-bit]  bg.sw 168(r3), r7
+0x000040:  93 bd         [16-bit]  bt.j -134
+0x000042:  98 60         [16-bit]  bt.movi r3, 0
+0x000044:  e4 0f 4c 76   [32-bit]  bg.jal +1002614
+0x000048:  51 40 6c      [24-bit]  bn.ori r10, r0, 0x6c
+0x00004b:  40 63 53      [24-bit]  bn.muls r3, r3, r10
+--- Instruction Statistics: 16-bit: 7, 24-bit: 8, 32-bit: 10 ---
+
+=======================================================
+ Region: Region D: Subroutine Prologue (0x001000 in decompressed_main.bin) (Start: 0x001000)
+=======================================================
+0x001000:  60 2f f1      [24-bit]  bn.op_18
+0x001003:  30 88 61      [24-bit]  bn.op_0c
+0x001006:  c0 80 06 e1   [32-bit]  bg.movhi r4, 0x37
+0x00100a:  fc 84 b0 d7   [32-bit]  bg.addi r4, r4, -20265
+0x00100e:  98 a8         [16-bit]  bt.movi r5, 8
+0x001010:  e4 0b f9 8a   [32-bit]  bg.jal +784778
+0x001014:  20 60 56      [24-bit]  bn.bnei r3, 0, +42
+0x001017:  c0 e0 0a 61   [32-bit]  bg.movhi r7, 0x53
+0x00101b:  fc c7 8a 9c   [32-bit]  bg.addi r6, r7, -30052
+0x00101f:  50 e0 16      [24-bit]  bn.ori r7, r0, 0x16
+0x001022:  ec e6 02 60   [32-bit]  bg.sw 608(r6), r7
+0x001026:  2f f1 0b      [24-bit]  bn.j -7658
+0x001029:  88 61         [16-bit]  bt.mov r3, r1
+0x00102b:  c0 80 06 e1   [32-bit]  bg.movhi r4, 0x37
+0x00102f:  fc 84 b0 e0   [32-bit]  bg.addi r4, r4, -20256
+0x001033:  98 a8         [16-bit]  bt.movi r5, 8
+0x001035:  e4 0b f9 40   [32-bit]  bg.jal +784704
+0x001039:  d0 60 87 c6   [32-bit]  bg.bnei r3, 0, 4344
+0x00103d:  c0 e0 0a 61   [32-bit]  bg.movhi r7, 0x53
+0x001041:  fc c7 8a 9c   [32-bit]  bg.addi r6, r7, -30052
+--- Instruction Statistics: 16-bit: 3, 24-bit: 5, 32-bit: 12 ---

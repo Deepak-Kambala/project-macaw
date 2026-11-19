@@ -1,0 +1,10 @@
+  [PASS] Criterion 1: Initial Game State Setup              | Snake len=3, Over=False, Score=0
+  [PASS] Criterion 2: Valid Direction Changes               | Dir=(0, -1), Head=(10, 9)
+  [PASS] Criterion 3: Rejection of Immediate 180-deg Reverse | Dir after illegal DOWN=(0, -1)
+  [PASS] Criterion 4: Food Consumption & Score Increment    | Score changed from 0 to 10
+  [PASS] Criterion 5: Snake Body Growth                     | Snake length after eating = 4
+  [PASS] Criterion 6: Wall Collision Detection              | Wall collision Game Over=True
+  [PASS] Criterion 7: Self Collision Detection              | Self collision Game Over=True
+  [PASS] Criterion 8: Timer Tick & GE Rendering Commands    | GE FillRect calls=5, DrawLine calls=4
+
+Overall Result: ALL 8 CRITERIA PASSED
