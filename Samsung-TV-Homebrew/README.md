@@ -4,7 +4,7 @@ An exhaustive reverse engineering, architectural reconstruction, and host-side e
 
 ---
 
-## 🎯 The Genesis: Why This Project Started
+##  The Genesis: Why This Project Started
 
 ### The Vision
 Across the embedded device and retro-computing communities, television homebrew projects (such as *SamyGO* on Samsung Orsay/Tizen TVs, *RootMyTV* on LG webOS, and various MediaTek/Realtek Android modifications) demonstrated that consumer televisions could frequently be converted into open computing platforms. 
