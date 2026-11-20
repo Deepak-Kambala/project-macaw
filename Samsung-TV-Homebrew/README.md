@@ -203,6 +203,7 @@ Detailed technical reports and architectural analyses produced across all milest
 | **Graphics Runtime Analysis** | [research/milestone7/graphics_runtime_analysis.md](research/milestone7/graphics_runtime_analysis.md) | MStar GE blitter, GOP compositor, double-buffering (`dcMain`/`dcBuff`), and 720p scaling. |
 | **Input Dispatch Analysis** | [reports/milestone7_input_dispatch_analysis.md](reports/milestone7_input_dispatch_analysis.md) | IR carrier demodulation (`IR_RATE`), scan-code translation, and ZUI window routing. |
 | **Initial Firmware Analysis** | [reports/firmware-analysis.md](reports/firmware-analysis.md) | Milestone 1 static analysis, entropy mapping, and partition carving. |
+| **Technical References & Citations** | [REFERENCES.md](REFERENCES.md) | Comprehensive bibliography of vendor manuals, Ghidra-Aeon SLEIGH sources, standards, and literature. |
 
 ---
 
