@@ -98,6 +98,35 @@ Until those hardware interventions are undertaken, **stopping here preserves a w
 
 ---
 
+## 🖥️ Alternative Practical Use: Extended Coding Monitor Setup
+
+While the television cannot safely run custom software internally, it **can be immediately repurposed as an extended monitor for coding** via its physical HDMI port.
+
+### 1. Connection Requirements
+- **Cable:** Standard HDMI to HDMI cable, or a USB-C to HDMI adapter from your Mac/PC.
+- macOS will instantly recognize it as a 60 Hz external display under **System Settings → Displays**.
+
+### 2. The Critical Setting: Crisp Text vs. Blurry Text (Rename Source to "PC")
+By default, televisions treat HDMI inputs as video players (consoles/set-top boxes), applying artificial edge-sharpening, noise filters, and color subsampling that makes small code text blurry or haloed.
+To get sharp, pixel-perfect text:
+1. Press **Source** on the Samsung remote.
+2. Select the **HDMI** port connected to your computer.
+3. Press **Tools** on the remote (or navigate to **Edit Name**).
+4. Rename the input label to **"PC"** (or **"DVI PC"**).
+5. In **Menu → Picture → Picture Size**, set the aspect ratio to **"Screen Fit"** (or **"Just Scan"**) to eliminate overscan edge clipping.
+
+> **Technical Reason:** Naming the port "PC" signals the MStar Macaw12 scaler to disable video post-processing filters, activate **1:1 pixel mapping**, and switch to uncompressed **RGB 4:4:4 color**, making terminal and IDE fonts crisp and legible.
+
+### 3. Coding Workflow Recommendations
+- **Panel Size & Resolution:** 23.6-inch panel at **1366 × 768** (~66 PPI).
+- **Ideal Secondary Roles:**
+  - Full-screen terminal windows running `git`, test watchers, build logs, and dev servers.
+  - Reference documentation, API specs, and architectural diagrams.
+  - Communication tools (Slack/Discord) or database monitoring dashboards.
+- Keep your primary laptop display (e.g. MacBook Retina) for dense code editing, while using the Samsung TV as an auxiliary dashboard and build monitor.
+
+---
+
 ## 📊 Summary of Milestones
 
 | Milestone | Scope & Core Objective | Key Deliverables & Achievements | Status |
