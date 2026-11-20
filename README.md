@@ -4,6 +4,17 @@ An exhaustive reverse engineering, architectural reconstruction, and host-side e
 
 ---
 
+## 📸 Physical Hardware Reference & Gallery
+
+Photographic documentation of the physical television unit under investigation:
+
+| Rear Model Label | I/O Connector Panel | TV Display & OSD Menu |
+| :---: | :---: | :---: |
+| ![Model Label](docs/images/tv_model_sticker.jpg) | ![Rear I/O Ports](docs/images/tv_rear_ports.jpg) | ![TV Running OSD](docs/images/tv_osd_running.jpg) |
+| **Model:** `UA23H4003ARLXL`<br>**Version:** `SS01`<br>**Type:** `UA23H4003`<br>**S/N:** `H00M3PAFA06360N` | **Ports:** USB (Top), HDMI IN (STB),<br>3.5mm Audio Out, Component/AV In, RF In | **Runtime:** Live MStar Utopia OSD<br>Picture Menu rendered over analog RF static |
+
+---
+
 ##  The Genesis: Why This Project Started
 
 ### The Vision
